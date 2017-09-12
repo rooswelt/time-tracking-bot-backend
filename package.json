@@ -1,0 +1,20 @@
+{
+  "name": "timetrackbot",
+  "version": "0.0.1",
+  "description": "Backend for Time Tracking bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bootbot": "^1.0.12",
+    "http": "0.0.0",
+    "node-rest-client": "^3.1.0",
+    "object-to-xml": "^1.1.0",
+    "request": "^2.81.0",
+    "youtrack-rest-node-library": "git+https://github.com/rooswelt/youtrack-rest-node-library.git"
+  }
+}
