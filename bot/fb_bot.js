@@ -1,5 +1,6 @@
 const Bot = require('bootbot');
 const _ = require('lodash');
+const Agenda = require('agenda');
 const timeTrackingCtrl = require('../controller/timeTracking');
 
 var bot;
@@ -19,12 +20,28 @@ function start(pageToken, verifyToken, appSecret, port) {
         accessToken: pageToken,
         verifyToken: verifyToken,
         appSecret: appSecret
-    })
+    });
+
+    var mongoConnectionString = 'mongodb://localhost:27017/agenda';
+
+    var agenda = new Agenda({ db: { address: mongoConnectionString } });
+
+    agenda.define('send message', function (job, done) {
+        var userId = job.params.userId;
+        var message = 'Ogni minuto ti scrivo!';
+        bot.sendTextMessage(userId, message);
+    });
+
+    agenda.on('ready', function () {
+        agenda.start();
+    });
 
     bot.setGreetingText('Hey there! Welcome to Time Tracking Bot!');
     bot.setGetStartedButton((payload, chat) => {
         chat.getUserProfile().then((user) => {
             chat.say(`Hello, ${user.first_name}! Welcome to Time Tracking Bot. What can I do for you?`);
+
+            agenda.every('*/3 * * * *', 'send message', { userId: user.id });
             mainMenu(chat);
         });
     });

@@ -1,6 +1,6 @@
 version: '2.1'
 services:
-  parse-server:
+  ttb-backend:
     image: mrosetti/time-tracking-bot-backend
     container_name: ttb-backend
     restart: unless-stopped
@@ -12,8 +12,8 @@ services:
     ports:
       - 3500:3500
 
-  parse-dashboard:
-    image: redmine
+  redmine:
+    image: redmine:3.4.2
     container_name: ttb-redmine
     restart: unless-stopped
     ports:

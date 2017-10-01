@@ -10,13 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "agenda": "^1.0.0",
     "bootbot": "^1.0.12",
     "http": "0.0.0",
     "node-redmine": "^0.2.0",
     "node-rest-client": "^3.1.0",
     "object-to-xml": "^1.1.0",
     "q": "^1.5.0",
-    "request": "^2.81.0",
-    "youtrack-rest-node-library": "git+https://github.com/rooswelt/youtrack-rest-node-library.git"
+    "request": "^2.81.0"
   }
 }
