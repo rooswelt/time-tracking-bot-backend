@@ -7,6 +7,12 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "Test",
+            "program": "${workspaceRoot}/test.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "Start",
             "program": "${workspaceRoot}/index.js",
             "env": {

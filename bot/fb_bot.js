@@ -80,13 +80,13 @@ function registerActivity(payload, chat) {
                 conv.set('project', project);
                 const projectId = project.substring(0, project.indexOf('-') - 1);
                 conv.set('projectId', projectId);
-                conv.say(`Ok, progetto ${project}.`).then(() => askIssue(conv));
+                conv.say(`Ok, progetto ${project}.`).then(() => askDuration(conv));
             };
             conv.ask(question, answer);
         });
     };
 
-    const askIssue = (conv) => {
+    /*const askIssue = (conv) => {
         const projectId = conv.get('projectId');
         timeTrackingCtrl.getProjectIssues(projectId, 'sort by: updated', 0, 4).then((issues) => {
             var elements = [];
@@ -115,7 +115,7 @@ function registerActivity(payload, chat) {
             conv.sendListTemplate(elements, [], { topElementStyle: 'compact' }).then(() => { conv.ask(question, answer) });
 
         })
-    }
+    }*/
 
     const askDuration = (conv) => {
         const question = {
@@ -166,7 +166,7 @@ function registerActivity(payload, chat) {
     }
 
     const sendSummary = (conv) => {
-        conv.say(`Quindi, ricapitolando:\n - Issue: ${conv.get('issueId')}\n - Durata: ${conv.get('duration')}\n - Nota: ${conv.get('note')}`);
+        conv.say(`Quindi, ricapitolando:\n - Progetto: ${conv.get('project')}\n - Durata: ${conv.get('duration')}\n - Nota: ${conv.get('note')}`);
         const question = {
             text: `Giusto?`,
             quickReplies: ['Yes', 'No']
@@ -196,11 +196,11 @@ function registerActivity(payload, chat) {
     };
 
     const registerActivity = (conv) => {
-        var issueId = conv.get('issueId');
+        var projectId = conv.get('projectId');
         var duration = conv.get('duration');
-        var minutes = parseFloat(duration) * 60;
+        var hours = parseFloat(duration);
         var note = conv.get('note');
-        timeTrackingCtrl.registerTime(minutes, issueId, note).then(function () {
+        timeTrackingCtrl.registerTime(hours, projectId, note).then(function () {
             conv.end();
             mainMenu(chat);
         }, function (error) {

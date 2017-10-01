@@ -10,5 +10,4 @@ COPY . /usr/src/ttb-slack-bot
 
 RUN npm install
 
-
 CMD [ "npm", "start" ]

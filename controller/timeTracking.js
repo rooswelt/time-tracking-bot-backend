@@ -1,9 +1,8 @@
-var youtrackCtrl = require('./youtrack');
+var redmineCtrl = require('./redmine');
 
 module.exports = {
     registerTime: registerTime,
-    getProjects: getProjects,
-    getProjectIssues: getProjectIssues
+    getProjects: getProjects
 }
 
 /**
@@ -12,15 +11,10 @@ module.exports = {
  * @param {*} activity
  * @param {*} note
  */
-function registerTime(duration, activity, note) {
-    var today = new Date();
-    return youtrackCtrl.createWorkItem(activity, today, duration, note);
+function registerTime(duration, project, note) {
+    return redmineCtrl.registerTime(project, duration, note);
 }
 
 function getProjects() {
-    return youtrackCtrl.getProjects();
-}
-
-function getProjectIssues(projectId, filter, after, max) {
-    return youtrackCtrl.getProjectIssues(projectId, filter, after, max);
+    return redmineCtrl.getProjects();
 }
