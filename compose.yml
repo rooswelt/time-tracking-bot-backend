@@ -55,6 +55,22 @@ services:
         max-size: "512m"
         max-file: "3"
 
+  nginx:
+    image: nginx
+    container_name: nginx
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "512m"
+        max-file: "3"
+    ports:
+      - 80:80
+      - 443:443
+      - 27017:27017
+    volumes:
+      - nginx-conf:/etc/nginx
+
 volumes:
   redmine-files:
     external: true
@@ -63,4 +79,6 @@ volumes:
   mongo-dbdata:
     external: true
   mongo-configdata:
+    external: true
+  nginx-conf:
     external: true
