@@ -15,21 +15,20 @@ module.exports = {
  * @param {*} verifyToken
  * @param {*} appSecret
  */
-function start(pageToken, verifyToken, appSecret, port) {
+function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
     bot = new Bot({
         accessToken: pageToken,
         verifyToken: verifyToken,
         appSecret: appSecret
     });
 
-    var mongoConnectionString = 'mongodb://localhost:27017/agenda';
-
-    var agenda = new Agenda({ db: { address: mongoConnectionString } });
+    var agenda = new Agenda({ db: { address: agendaMongoUrl } });
 
     agenda.define('send message', function (job, done) {
-        var userId = job.params.userId;
-        var message = 'Ogni minuto ti scrivo!';
+        var userId = job.attrs.data.userId;
+        var message = job.attrs.data.message || 'Ogni minuto ti scrivo!';
         bot.sendTextMessage(userId, message);
+        done();
     });
 
     agenda.on('ready', function () {
@@ -40,12 +39,17 @@ function start(pageToken, verifyToken, appSecret, port) {
     bot.setGetStartedButton((payload, chat) => {
         chat.getUserProfile().then((user) => {
             chat.say(`Hello, ${user.first_name}! Welcome to Time Tracking Bot. What can I do for you?`);
-
-            agenda.every('*/3 * * * *', 'send message', { userId: user.id });
-            mainMenu(chat);
+            createUser(chat);
+            /* var test = agenda.create('send message', { userId: user.id, message: 'TEST' });
+             test.repeatEvery('1 minute').save();*/
         });
     });
     bot.setPersistentMenu([
+        {
+            type: 'postback',
+            title: 'Registra Utente',
+            payload: 'NEW_USER'
+        },
         {
             type: 'postback',
             title: 'Registra Attività',
@@ -62,7 +66,7 @@ function start(pageToken, verifyToken, appSecret, port) {
 
     bot.on('message', _onMessageReceived);
 
-
+    bot.on('postback:NEW_USER', (payload, chat) => { createUser(chat) });
     bot.on('postback:REGISTER_ACTIVITY', (payload, chat) => { registerActivity(payload, chat) });
     bot.on('postback:NEW_PROJECT', (payload, chat) => { newProject(payload, chat) });
 }
@@ -74,10 +78,24 @@ function _onMessageReceived(payload, chat) {
 
 function mainMenu(chat) {
     const buttons = [
+        { type: 'postback', title: 'Registra utente', payload: 'NEW_USER' },
         { type: 'postback', title: 'Registra attività', payload: 'REGISTER_ACTIVITY' },
         { type: 'postback', title: 'Nuovo progetto', payload: 'NEW_PROJECT' }
     ];
     chat.sendButtonTemplate('Cosa vuoi fare?', buttons);
+}
+
+function createUser(chat) {
+    chat.getUserProfile().then((user) => {
+        var email = 'rosetti.marco@gmail.com';
+        timeTrackingCtrl.createUser(user.id, user.first_name, user.last_name, email);
+        /*.then((createdUser) => {
+            console.log('Redmine user created', createdUser);
+        }).catch((error) => {
+            console.error('Error in user creation', error);
+        })*/
+        mainMenu(chat);
+    });
 }
 
 function registerActivity(payload, chat) {

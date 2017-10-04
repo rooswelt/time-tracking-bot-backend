@@ -16,12 +16,13 @@
             "name": "Start",
             "program": "${workspaceRoot}/index.js",
             "env": {
-                "YOUTRACK_BASE_URL": "http://localhost:81",
-                "YOUTRACK_TOKEN": "perm:cm9vdA==.Qk9UICBUb2tlbg==.whzUnClqO7hn0XTnP7wska5RRSSuwQ",
+                "REDMINE_HOST": "http://time-tracking-bot.eastus.cloudapp.azure.com:3000",
+                "REDMINE_API_KEY": "48af6895688ca2108cafed19fed5bffafc541eea",
                 "FB_PAGE_TOKEN": "EAAZAVZCxbZAULwBAChclH5RHHyCsQZAYTEfzPOEZAyWvhlLCEJGSFB91thV0FIHg6DqZAAT0vyrwk8tPQFRoOva69eZAG5cDyUhHc5ZCrrXV9C03qOrZA05DyZAcKs6evt2fK4pxIsGHgJclLOiiqnck5g8iue3rKTGkWRR0ZA0XlxJbAZDZD",
                 "FB_VERIFY_TOKEN": "mysecret",
                 "FB_APP_SECRET": "8e6d7944e4a95b4e2b19a0b60b6ec6db",
-                "FB_PORT": "3500"
+                "FB_PORT": "3500",
+                "AGENDA_MONGO_URL": "mongodb://time-tracking-bot.eastus.cloudapp.azure.com:27017/agenda"
             }
         }
     ]
