@@ -20,6 +20,8 @@ services:
     restart: unless-stopped
     environment:
       MONGODB_URI: mongodb://mongo/agenda
+    ports:
+      - 4000:3000
 
   redmine:
     image: redmine:3.4.2
@@ -28,6 +30,8 @@ services:
     environment:
       REDMINE_DB_MYSQL: redmine-db
       REDMINE_DB_PASSWORD: example
+    ports:
+      - 3000:3000
     volumes:
       - redmine-files:/usr/src/redmine/files
 
