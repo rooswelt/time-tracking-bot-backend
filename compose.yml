@@ -16,17 +16,17 @@ services:
 
   agendash:
     image: lgatica/docker-agendash
-    container_name: ttb-agendash
+    container_name: agendash
     restart: unless-stopped
     environment:
-      MONGODB_URI: mongodb://ttb-mongo/agenda
+      MONGODB_URI: mongodb://mongo/agenda
 
   redmine:
     image: redmine:3.4.2
-    container_name: ttb-redmine
+    container_name: redmine
     restart: unless-stopped
     environment:
-      REDMINE_DB_MYSQL: ttb-redmine-db
+      REDMINE_DB_MYSQL: redmine-db
       REDMINE_DB_PASSWORD: example
     volumes:
       - redmine-files:/usr/src/redmine/files
@@ -34,7 +34,7 @@ services:
   redminedb:
     image: mysql:5.7
     restart: unless-stopped
-    container_name: ttb-redmine-db
+    container_name: redmine-db
     environment:
       MYSQL_ROOT_PASSWORD: example
       MYSQL_DATABASE: redmine
@@ -43,7 +43,7 @@ services:
 
   mongo:
     image: mongo:3.4.7
-    container_name: ttb-mongo
+    container_name: mongo
     command: --smallfiles --setParameter failIndexKeyTooLong=false
     restart: unless-stopped
     volumes:
