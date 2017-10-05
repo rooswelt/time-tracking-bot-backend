@@ -3,6 +3,7 @@ var redmineCtrl = require('./redmine');
 module.exports = {
     registerTime: registerTime,
     getProjects: getProjects,
+    createProject: createProject,
     createUser: createUser
 }
 
@@ -12,12 +13,16 @@ module.exports = {
  * @param {*} activity
  * @param {*} note
  */
-function registerTime(duration, project, note) {
-    return redmineCtrl.registerTime(project, duration, note);
+function registerTime(userId, duration, project, note) {
+    return redmineCtrl.registerTime(userId, project, duration, note);
 }
 
-function getProjects() {
-    return redmineCtrl.getProjects();
+function getProjects(userId) {
+    return redmineCtrl.getProjects(userId);
+}
+
+function createProject(userId, name) {
+    return redmineCtrl.createProject(userId, name);
 }
 
 function createUser(username, name, surname, mail) {

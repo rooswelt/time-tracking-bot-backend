@@ -1,4 +1,5 @@
 const Bot = require('bootbot');
+const Q = require('q');
 const _ = require('lodash');
 const Agenda = require('agenda');
 const timeTrackingCtrl = require('../controller/timeTracking');
@@ -39,7 +40,9 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
     bot.setGetStartedButton((payload, chat) => {
         chat.getUserProfile().then((user) => {
             chat.say(`Hello, ${user.first_name}! Welcome to Time Tracking Bot. What can I do for you?`);
-            createUser(chat);
+            createUser(chat).then(() => {
+                mainMenu(chat);
+            })
             /* var test = agenda.create('send message', { userId: user.id, message: 'TEST' });
              test.repeatEvery('1 minute').save();*/
         });
@@ -47,18 +50,18 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
     bot.setPersistentMenu([
         {
             type: 'postback',
-            title: 'Registra Utente',
-            payload: 'NEW_USER'
-        },
-        {
-            type: 'postback',
             title: 'Registra Attività',
             payload: 'REGISTER_ACTIVITY'
         },
         {
             type: 'postback',
-            title: 'Nuovo Progetto',
-            payload: 'NEW_PROJECT'
+            title: 'Resoconto',
+            payload: 'REPORT'
+        },
+        {
+            type: 'postback',
+            title: 'Ricomincia',
+            payload: 'RESTART'
         }
     ]);
 
@@ -66,9 +69,9 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
 
     bot.on('message', _onMessageReceived);
 
-    bot.on('postback:NEW_USER', (payload, chat) => { createUser(chat) });
     bot.on('postback:REGISTER_ACTIVITY', (payload, chat) => { registerActivity(payload, chat) });
-    bot.on('postback:NEW_PROJECT', (payload, chat) => { newProject(payload, chat) });
+    bot.on('postback:REPORT', (payload, chat) => { generateReport(payload, chat) });
+    bot.on('postback:RESTART', (payload, chat) => { mainMenu(chat) });
 }
 
 function _onMessageReceived(payload, chat) {
@@ -78,79 +81,80 @@ function _onMessageReceived(payload, chat) {
 
 function mainMenu(chat) {
     const buttons = [
-        { type: 'postback', title: 'Registra utente', payload: 'NEW_USER' },
         { type: 'postback', title: 'Registra attività', payload: 'REGISTER_ACTIVITY' },
-        { type: 'postback', title: 'Nuovo progetto', payload: 'NEW_PROJECT' }
+        { type: 'postback', title: 'Resoconto', payload: 'REPORT' }
     ];
     chat.sendButtonTemplate('Cosa vuoi fare?', buttons);
 }
 
 function createUser(chat) {
+    var deferred = Q.defer();
     chat.getUserProfile().then((user) => {
-        var email = 'rosetti.marco@gmail.com';
-        timeTrackingCtrl.createUser(user.id, user.first_name, user.last_name, email);
-        /*.then((createdUser) => {
+        timeTrackingCtrl.createUser(user.id, user.first_name, user.last_name).then((createdUser) => {
             console.log('Redmine user created', createdUser);
+            deferred.resolve(createdUser);
         }).catch((error) => {
             console.error('Error in user creation', error);
-        })*/
-        mainMenu(chat);
+            deferred.reject(error);
+        })
     });
+    return deferred.promise;
+}
+
+function askProjectName(conv) {
+    var deferred = Q.defer();
+    conv.ask(`Nome del progetto?`, (payload, conv) => {
+        const projectName = payload.message.text;
+        conv.set('projectName', projectName);
+        timeTrackingCtrl.createProject(conv.userId, projectName).then((project) => {
+            conv.set('projectName', project.name);
+            conv.set('projectId', project.id);
+            deferred.resolve(project);
+        }).catch((error) => {
+            console.error('Error in project creation', error);
+            deferred.reject(error);
+        });
+    })
+    return deferred.promise;
+}
+
+function generateReport(payload, chat) {
+    chat.say('Mi dispiace, ancora non sono capace...per poco però!');
+    mainMenu(chat);
 }
 
 function registerActivity(payload, chat) {
     const askProject = (conv) => {
-        timeTrackingCtrl.getProjects().then((projects) => {
-            var quickReplies = [];
-            _.each(projects, function (project) {
-                quickReplies.push(`${project.id} - ${project.name}`);
-            });
-            const question = {
-                text: `Quale progetto?`,
-                quickReplies: quickReplies
-            };
+        timeTrackingCtrl.getProjects(conv.userId).then((projects) => {
+            if (!projects || projects.length == 0) {
+                askProjectName(conv).then((project) => askDuration(conv));
+            } else {
+                var quickReplies = [];
+                _.each(projects, function (project) {
+                    quickReplies.push(`${project.id} - ${project.name}`);
+                });
+                quickReplies.push('Nuovo progetto');
+                const question = {
+                    text: `Quale progetto?`,
+                    quickReplies: quickReplies
+                };
 
-            const answer = (payload, conv) => {
-                const project = payload.message.text;
-                conv.set('project', project);
-                const projectId = project.substring(0, project.indexOf('-') - 1);
-                conv.set('projectId', projectId);
-                conv.say(`Ok, progetto ${project}.`).then(() => askDuration(conv));
-            };
-            conv.ask(question, answer);
+                const answer = (payload, conv) => {
+                    const project = payload.message.text;
+                    if (project === 'Nuovo progetto') {
+                        askProjectName(conv).then((project) => askDuration(conv));
+                    } else {
+                        const projectId = project.substring(0, project.indexOf('-') - 1);
+                        const projectName = project.substring(project.indexOf('-') + 1);
+                        conv.set('projectName', projectName);
+                        conv.set('projectId', projectId);
+                        conv.say(`Ok, progetto ${project}.`).then(() => askDuration(conv));
+                    }
+                };
+                conv.ask(question, answer);
+            }
         });
     };
-
-    /*const askIssue = (conv) => {
-        const projectId = conv.get('projectId');
-        timeTrackingCtrl.getProjectIssues(projectId, 'sort by: updated', 0, 4).then((issues) => {
-            var elements = [];
-            var quickReplies = [];
-            _.each(issues, function (issue) {
-                quickReplies.push(issue.id);
-                elements.push({
-                    title: issue.id,
-                    subtitle: issue.summary
-                })
-            });
-            const buttons = [
-                { type: 'postback', title: 'Altre...', payload: 'SEARCH_ISSUE' }
-            ];
-
-            const question = {
-                text: `Quale attività?`,
-                quickReplies: quickReplies
-            };
-
-            const answer = (payload, conv) => {
-                const issueId = payload.message.text;
-                conv.set('issueId', issueId);
-                askDuration(conv);
-            };
-            conv.sendListTemplate(elements, [], { topElementStyle: 'compact' }).then(() => { conv.ask(question, answer) });
-
-        })
-    }*/
 
     const askDuration = (conv) => {
         const question = {
@@ -168,40 +172,15 @@ function registerActivity(payload, chat) {
     }
 
     const askNote = (conv) => {
-        const question = {
-            text: `Una nota?`,
-            quickReplies: ['Yes', 'No']
-        };
-
-        const answer = (payload, conv) => {
-            const text = payload.message.text;
-            conv.say(`You said ${text}!`);
-        };
-
-        const callbacks = [
-            {
-                pattern: ['yes', 'y', 'Yes', 'Y'],
-                callback: (payload, conv) => {
-                    conv.ask(`Scrivi la nota`, (payload, conv) => {
-                        const note = payload.message.text;
-                        conv.set('note', note);
-                        sendSummary(conv);
-                    })
-                }
-            },
-            {
-                pattern: ['no'],
-                callback: (payload, conv) => {
-                    conv.set('note', '');
-                    sendSummary(conv)
-                }
-            }
-        ];
-        conv.ask(question, answer, callbacks);
+        conv.ask(`Descrivi brevemente cosa hai fatto`, (payload, conv) => {
+            const note = payload.message.text;
+            conv.set('note', note);
+            sendSummary(conv);
+        })
     }
 
     const sendSummary = (conv) => {
-        conv.say(`Quindi, ricapitolando:\n - Progetto: ${conv.get('project')}\n - Durata: ${conv.get('duration')}\n - Nota: ${conv.get('note')}`);
+        conv.say(`Quindi, ricapitolando:\n - Progetto: ${conv.get('projectName')}\n - Durata: ${conv.get('duration')}\n - Attività: ${conv.get('note')}`);
         const question = {
             text: `Giusto?`,
             quickReplies: ['Yes', 'No']
@@ -235,10 +214,13 @@ function registerActivity(payload, chat) {
         var duration = conv.get('duration');
         var hours = parseFloat(duration);
         var note = conv.get('note');
-        timeTrackingCtrl.registerTime(hours, projectId, note).then(function () {
+        timeTrackingCtrl.registerTime(conv.userId, hours, projectId, note).then(function () {
+            conv.say('Attività registrata correttamente');
             conv.end();
             mainMenu(chat);
         }, function (error) {
+            conv.say('Errore nella registrazione: ' + JSON.stringify(error));
+            conv.say('Per favore riprova, se il problema persiste contatta lo sviluppatore: rooswelt83@gmail.com');
             conv.end();
             mainMenu(chat);
         });
@@ -250,6 +232,11 @@ function registerActivity(payload, chat) {
 }
 
 function newProject(payload, chat) {
-    chat.say(`Mi dispiace, ancora non lo so fare`, { typing: true }).then(() => mainMenu(chat));
+    chat.conversation((conv) => {
+        askProjectName(conv).then((project) => {
+            conv.say('Progetto ' + project.name + ' registrato');
+            mainMenu(chat)
+        });
+    });
 }
 
