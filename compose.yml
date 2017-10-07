@@ -11,9 +11,6 @@ services:
       - FB_PORT=3500
       - REDMINE_HOST=http://redmine:3000
       - REDMINE_API_KEY=48af6895688ca2108cafed19fed5bffafc541eea
-      - AGENDA_MONGO_URL=mongodb://mongo:27017/agenda
-    ports:
-      - 3500:3500
 
   agendash:
     image: lgatica/docker-agendash
@@ -75,6 +72,7 @@ services:
       - 27017:27017
     volumes:
       - nginx-conf:/etc/nginx
+      - ssl-certs:/etc/letsencrypt
 
 volumes:
   redmine-files:
@@ -86,4 +84,6 @@ volumes:
   mongo-configdata:
     external: true
   nginx-conf:
+    external: true
+  ssl-certs:
     external: true
