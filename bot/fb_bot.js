@@ -165,7 +165,6 @@ function generateReport(payload, chat) {
             }
 
             timeTrackingCtrl.getTimeEntries(chat.userId, startDay.format(DATE_FORMAT), endDay.format(DATE_FORMAT)).then((data) => {
-                console.log('Time trackings', data);
                 var projects = _groupByProject(data);
                 var pairs = _.toPairs(projects)
                 if (pairs && pairs.length > 0) {
