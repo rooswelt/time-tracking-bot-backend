@@ -3,7 +3,7 @@ services:
   ttb-backend:
     image: mrosetti/time-tracking-bot-backend:dev
     container_name: ttb-backend
-    #restart: unless-stopped
+    restart: unless-stopped
     environment:
       - FB_PAGE_TOKEN=EAAZAVZCxbZAULwBAChclH5RHHyCsQZAYTEfzPOEZAyWvhlLCEJGSFB91thV0FIHg6DqZAAT0vyrwk8tPQFRoOva69eZAG5cDyUhHc5ZCrrXV9C03qOrZA05DyZAcKs6evt2fK4pxIsGHgJclLOiiqnck5g8iue3rKTGkWRR0ZA0XlxJbAZDZD
       - FB_VERIFY_TOKEN=mysecret
@@ -11,6 +11,6 @@ services:
       - FB_PORT=3500
       - REDMINE_HOST=http://time-tracking-bot.eastus.cloudapp.azure.com:3000
       - REDMINE_API_KEY=48af6895688ca2108cafed19fed5bffafc541eea
-      - AGENDA_MONGO_URL=mongodb://time-tracking-bot.eastus.cloudapp.azure.com:27017/agenda"
+      - AGENDA_MONGO_URL=mongodb://time-tracking-bot.eastus.cloudapp.azure.com:27017/agenda
     ports:
       - 3500:3500
