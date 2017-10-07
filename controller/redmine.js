@@ -8,6 +8,7 @@ exports.createUser = createUser;
 exports.getProjects = getProjects;
 exports.createProject = createProject;
 exports.registerTime = registerTime;
+exports.getTimeEntries = getTimeEntries;
 
 function init(hostname, apiKey) {
     var config = {
@@ -124,6 +125,27 @@ function registerTime(userId, projectId, duration, description, date, activityId
     return deferred.promise;
 }
 
+function getTimeEntries(userId, start, end) {
+    if (userId) {
+        redmine.impersonate = userId;
+    }
+
+    var start = start || '1900-01-01';
+    var end = end || '2999-12-31';
+    var deferred = Q.defer();
+    redmine.time_entries({ spent_on: '><' + start + '|' + end }, function (err, data) {
+        if (err) {
+            deferred.reject(err);
+        } else {
+            deferred.resolve(data.time_entries);
+        }
+    });
+    return deferred.promise;
+}
+
+
+
+/// INTERNAL FUNCTIONS ///
 function _generateProjectIdentifier(name) {
     if (!name) {
         return '';

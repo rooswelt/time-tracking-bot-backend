@@ -1,8 +1,11 @@
 const Bot = require('bootbot');
 const Q = require('q');
 const _ = require('lodash');
+const moment = require('moment');
 const Agenda = require('agenda');
 const timeTrackingCtrl = require('../controller/timeTracking');
+
+const DATE_FORMAT = "YYYY-MM-DD";
 
 var bot;
 
@@ -119,8 +122,89 @@ function askProjectName(conv) {
 }
 
 function generateReport(payload, chat) {
-    chat.say('Mi dispiace, ancora non sono capace...per poco però!');
-    mainMenu(chat);
+
+    const askPeriod = (conv) => {
+        const quickReplies = [
+            "Oggi", "Ieri", "Questa settimana", "Settimana scorsa", "Questo mese", "Mese scorso", "Tutto"
+        ];
+        //TODO possiblità di specificare periodo di tempo custom
+        const question = {
+            text: `In quale periodo?`,
+            quickReplies: quickReplies
+        }
+
+        const answer = (payload, conv) => {
+            const answer = payload.message.text;
+            var startDay = moment("1900-01-01");
+            var endDay = moment("2999-12-31");
+            switch (answer) {
+                case "Oggi":
+                    stastartDayrt = moment();
+                    endDay = moment();
+                    break;
+                case "Ieri":
+                    startDay = moment().subtract(1, "days");
+                    endDay = moment().subtract(1, "days");
+                    break;
+                case "Questa settimana":
+                    startDay = moment().startOf("isoWeek");
+                    endDay = moment().endOf("isoWeek");
+                    break;
+                case "Settimana scorsa":
+                    startDay = moment().subtract(1, "weeks").startOf("isoWeek");
+                    endDay = moment().subtract(1, "weeks").endOf("isoWeek");
+                    break;
+                case "Questo mese":
+                    startDay = moment().startOf("month");
+                    endDay = moment().endOf("month");
+                    break;
+                case "Mese scorso":
+                    startDay = moment().subtract(1, "month").startOf("isoWeek");
+                    endDay = moment().subtract(1, "month").endOf("isoWeek");
+                    break;
+            }
+
+            timeTrackingCtrl.getTimeEntries(chat.userId, startDay.format(DATE_FORMAT), endDay.format(DATE_FORMAT)).then((data) => {
+                console.log('Time trackings', data);
+                var projects = _groupByProject(data);
+                var pairs = _.pairs(projects)
+                if (pairs && pairs.length > 0) {
+                    var details = `${answer}, hai lavorato a \n`;
+                    _.forEach(pairs, function (project) {
+                        var name = project[0];
+                        var hours = project[1];
+                        details += ` - ${hours} ore a ${name}\n`;
+                    })
+                    conv.say(details);
+                } else {
+                    conv.say(answer + ': nessuna attività registrata');
+                }
+                conv.end();
+                mainMenu(chat);
+            }).catch((error) => {
+                console.error('Error', error);
+                conv.say('Errore: ' + JSON.stringify(error));
+                conv.end();
+                mainMenu(chat);
+            });
+        };
+
+        conv.ask(question, answer);
+    }
+
+    chat.conversation((conv) => {
+        askPeriod(conv);
+    });
+}
+
+function _groupByProject(entries) {
+    var results = {};
+    _.forEach(entries, function (entry) {
+        var projectName = entry.project.name;
+        var total = results[projectName] | 0;
+        results[projectName] = (total += entry.hours);
+    });
+    return results;
 }
 
 function registerActivity(payload, chat) {
