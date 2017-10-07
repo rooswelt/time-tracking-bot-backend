@@ -10,4 +10,6 @@ COPY . /usr/src/ttb-backend
 
 RUN npm install
 
+EXPOSE 3500
+
 CMD [ "npm", "start" ]
