@@ -5,9 +5,9 @@ services:
     container_name: ttb-backend
     restart: unless-stopped
     environment:
-      - FB_PAGE_TOKEN=EAAZAVZCxbZAULwBAChclH5RHHyCsQZAYTEfzPOEZAyWvhlLCEJGSFB91thV0FIHg6DqZAAT0vyrwk8tPQFRoOva69eZAG5cDyUhHc5ZCrrXV9C03qOrZA05DyZAcKs6evt2fK4pxIsGHgJclLOiiqnck5g8iue3rKTGkWRR0ZA0XlxJbAZDZD
-      - FB_VERIFY_TOKEN=mysecret
-      - FB_APP_SECRET=8e6d7944e4a95b4e2b19a0b60b6ec6db
+      - FB_PAGE_TOKEN=${FB_PAGE_TOKEN}
+      - FB_VERIFY_TOKEN=${FB_VERIFY_TOKEN}
+      - FB_APP_SECRET=${FB_APP_SECRET}
       - FB_PORT=3500
       - REDMINE_HOST=http://redmine:3000
       - REDMINE_API_KEY=48af6895688ca2108cafed19fed5bffafc541eea
