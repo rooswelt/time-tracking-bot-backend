@@ -39,10 +39,10 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
         agenda.start();
     });
 
-    bot.setGreetingText('Hey there! Welcome to Time Tracking Bot!');
+    bot.setGreetingText('Ciao! Io sono il Time Tracking Bot!');
     bot.setGetStartedButton((payload, chat) => {
         chat.getUserProfile().then((user) => {
-            chat.say(`Hello, ${user.first_name}! Welcome to Time Tracking Bot. What can I do for you?`);
+            chat.say(`Ciao, ${user.first_name}! Cosa posso fare per te?`);
             createUser(chat).then(() => {
                 mainMenu(chat);
             })
