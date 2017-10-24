@@ -94,7 +94,6 @@ function createUser(chat) {
     var deferred = Q.defer();
     chat.getUserProfile().then((user) => {
         timeTrackingCtrl.createUser(user.id, user.first_name, user.last_name).then((createdUser) => {
-            console.log('Redmine user created', createdUser);
             deferred.resolve(createdUser);
         }).catch((error) => {
             console.error('Error in user creation', error);

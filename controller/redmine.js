@@ -42,6 +42,7 @@ function createUser(username, name, surname, mail) {
                 if (err) {
                     deferred.reject(err);
                 } else {
+                    console.log('Redmine user created', data.user);
                     deferred.resolve(data.user);
                 }
             })
