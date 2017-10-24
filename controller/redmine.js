@@ -20,6 +20,7 @@ function init(hostname, apiKey) {
 
 function createUser(username, name, surname, mail) {
     var deferred = Q.defer();
+    redmine.impersonate = null;
     //TODO mrosetti - generate better username and password
     _getUser(username).then((user) => {
         if (user) {
@@ -178,6 +179,7 @@ function _getProject(userId, identifier) {
 
 function _getUser(login) {
     var deferred = Q.defer();
+    redmine.impersonate = null;
     redmine.users({ name: login }, function (err, data) {
         if (err) {
             deferred.reject(err);

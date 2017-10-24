@@ -28,21 +28,21 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
 
     var agenda = new Agenda({ db: { address: agendaMongoUrl } });
 
-    agenda.define('send message', function (job, done) {
-        var userId = job.attrs.data.userId;
-        var message = job.attrs.data.message || 'Ogni minuto ti scrivo!';
-        bot.sendTextMessage(userId, message);
-        done();
-    });
+    /* agenda.define('send message', function (job, done) {
+         var userId = job.attrs.data.userId;
+         var message = job.attrs.data.message || 'Ogni minuto ti scrivo!';
+         bot.sendTextMessage(userId, message);
+         done();
+     });
 
-    agenda.on('ready', function () {
-        agenda.start();
-    });
+     agenda.on('ready', function () {
+         agenda.start();
+     });*/
 
     bot.setGreetingText('Ciao! Io sono il Time Tracking Bot!');
     bot.setGetStartedButton((payload, chat) => {
         chat.getUserProfile().then((user) => {
-            chat.say(`Ciao, ${user.first_name}! Cosa posso fare per te?`);
+            chat.say(`Ciao, ${user.first_name}!`);
             createUser(chat).then(() => {
                 mainMenu(chat);
             })
