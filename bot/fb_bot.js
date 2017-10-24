@@ -72,9 +72,9 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
 
     bot.on('message', _onMessageReceived);
 
-    bot.on('postback:REGISTER_ACTIVITY', (payload, chat) => { registerActivity(payload, chat) });
-    bot.on('postback:REPORT', (payload, chat) => { generateReport(payload, chat) });
-    bot.on('postback:RESTART', (payload, chat) => { mainMenu(chat) });
+    bot.on('postback:REGISTER_ACTIVITY', (payload, chat) => { createUser(chat).then(() => { registerActivity(payload, chat) }) });
+    bot.on('postback:REPORT', (payload, chat) => { createUser(chat).then(() => { generateReport(payload, chat) }) });
+    bot.on('postback:RESTART', (payload, chat) => { createUser(chat).then(() => { mainMenu(chat) }) });
 }
 
 function _onMessageReceived(payload, chat) {
