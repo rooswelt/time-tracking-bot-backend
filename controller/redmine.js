@@ -55,7 +55,7 @@ function createUser(username, name, surname, mail) {
 
 function createProject(userId, projectName) {
     var deferred = Q.defer();
-    var identifier = _generateProjectIdentifier(projectName);
+    var identifier = _generateProjectIdentifier(projectName, userId);
     if (userId) {
         redmine.impersonate = userId;
     }
@@ -148,11 +148,15 @@ function getTimeEntries(userId, start, end) {
 
 
 /// INTERNAL FUNCTIONS ///
-function _generateProjectIdentifier(name) {
+function _generateProjectIdentifier(name, userId) {
     if (!name) {
         return '';
     }
-    return name.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
+    var result = name.toLowerCase().replace(/[^A-Z0-9]+/ig, "_");
+    if (userId) {
+        result += '_' + userId;
+    }
+    return result;
 }
 
 function _getProject(userId, identifier) {
