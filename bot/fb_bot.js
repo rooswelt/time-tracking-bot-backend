@@ -2,8 +2,9 @@ const Bot = require('bootbot');
 const Q = require('q');
 const _ = require('lodash');
 const moment = require('moment');
-const Agenda = require('agenda');
 const timeTrackingCtrl = require('../controller/timeTracking');
+const agendaCtrl = require('../controller/agenda');
+const cronParser = require('cron-parser');
 
 const DATE_FORMAT = "YYYY-MM-DD";
 
@@ -26,18 +27,7 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
         appSecret: appSecret
     });
 
-    var agenda = new Agenda({ db: { address: agendaMongoUrl } });
-
-    /* agenda.define('send message', function (job, done) {
-         var userId = job.attrs.data.userId;
-         var message = job.attrs.data.message || 'Ogni minuto ti scrivo!';
-         bot.sendTextMessage(userId, message);
-         done();
-     });
-
-     agenda.on('ready', function () {
-         agenda.start();
-     });*/
+    agendaCtrl.init(agendaMongoUrl);
 
     bot.setGreetingText('Ciao! Io sono il Time Tracking Bot!');
     bot.setGetStartedButton((payload, chat) => {
@@ -46,8 +36,6 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
             createUser(chat).then(() => {
                 mainMenu(chat);
             })
-            /* var test = agenda.create('send message', { userId: user.id, message: 'TEST' });
-             test.repeatEvery('1 minute').save();*/
         });
     });
     bot.setPersistentMenu([
@@ -74,6 +62,7 @@ function start(pageToken, verifyToken, appSecret, port, agendaMongoUrl) {
 
     bot.on('postback:REGISTER_ACTIVITY', (payload, chat) => { createUser(chat).then(() => { registerActivity(payload, chat) }) });
     bot.on('postback:REPORT', (payload, chat) => { createUser(chat).then(() => { generateReport(payload, chat) }) });
+    bot.on('postback:SCHEDULE', (payload, chat) => { createUser(chat).then(() => { scheduleReminder(payload, chat) }) });
     bot.on('postback:RESTART', (payload, chat) => { createUser(chat).then(() => { mainMenu(chat) }) });
 }
 
@@ -85,6 +74,7 @@ function _onMessageReceived(payload, chat) {
 function mainMenu(chat) {
     const buttons = [
         { type: 'postback', title: 'Registra attività', payload: 'REGISTER_ACTIVITY' },
+        { type: 'postback', title: 'Promemoria', payload: 'SCHEDULE' },
         { type: 'postback', title: 'Resoconto', payload: 'REPORT' }
     ];
     chat.sendButtonTemplate('Cosa vuoi fare?', buttons);
@@ -118,6 +108,93 @@ function askProjectName(conv) {
         });
     })
     return deferred.promise;
+}
+
+function scheduleReminder(payload, chat) {
+    chat.say('Presto disponibile').then(() => mainMenu(chat));
+    /*agendaCtrl.getUserJobs(chat.userId).then((jobs) => {
+        if (!jobs || jobs.length == 0) {
+            _enableReminder(payload, chat);
+        } else {
+            _disableReminder(payload, chat, jobs)
+        }
+    })*/
+}
+
+function _enableReminder(payload, chat) {
+    chat.say(`Imposta un promemoria per non dimenticarti di registrare il tuo tempo speso`).then(() => {
+        chat.conversation((conv) => {
+            const question = {
+                text: `Quando? Puoi usare una risposta veloce o inserire una espressione CRON https://en.wikipedia.org/wiki/Cron`,
+                quickReplies: ["Alle 18 sempre", "Alle 13 e 18 sempre", "Alle 18, lun-ven", "13 e 18, lun-ven"]
+            }
+
+            const answer = (payload, chat) => {
+                const answer = payload.message.text;
+                var cronExpression;
+                switch (answer) {
+                    case "Alle 18 sempre":
+                        cronExpression = "0 0 18 ? * * *";
+                        break;
+                    case "Alle 13 e 18 sempre":
+                        cronExpression = "0 0 13,18 ? * * *";
+                        break;
+                    case "Alle 18, lun-ven":
+                        cronExpression = "0 0 18 ? * 1-5 *";
+                        break;
+                    case "13 e 18, lun-ven":
+                        cronExpression = "0 0 13,18 ? * 1-5 *";
+                        break;
+                    default:
+                        try {
+                            cronParser.parseExpression(answer);
+                            cronExpression = answer;
+                        } catch (e) {
+                            console.error('Error parsing cron expression ' + answer, e);
+                        }
+                        break;
+                }
+                if (_.isEmpty(cronExpression)) {
+                    chat.say(`Non ho capito`).then(() => { conv.ask(question, cronExpression); });
+                } else {
+                    agendaCtrl.scheduleJob(function (params) {
+                        chat.say('Reminder! ' + JSON.stringify(params));//.then(() => registerActivity(payload, chat));
+                    }, answer, chat.userId);
+                    chat.say(`Promemoria impostato!`).then(() => {
+                        conv.end();
+                        mainMenu(chat);
+                    });
+                }
+            }
+            conv.ask(question, answer);
+        });
+    })
+}
+
+function _disableReminder(payload, chat, jobs) {
+    var job = jobs[0];
+    const disableReminder = (conv) => {
+        agendaCtrl.cancelUserJob(job.attrs.name, chat.userId).then(() => {
+            conv.say(`Promemoria disabilitato`).then(() => {
+                conv.end();
+                mainMenu(chat);
+            });
+
+        }, (error) => {
+            conv.say(`C'è stato un errore: ` + JSON.stringify(error)).then(() => {
+                conv.end();
+                mainMenu(chat);
+            });
+        })
+    };
+    chat.say(`Hai già un promemoria ` + JSON.stringify(job)).then(() => {
+        chat.conversation((conv) => {
+            _yesNoQuestion(conv, 'Vuoi disabilitarlo?', disableReminder, function () {
+                conv.end();
+                mainMenu(chat);
+            });
+        });
+    });
 }
 
 function generateReport(payload, chat) {
@@ -263,32 +340,7 @@ function registerActivity(payload, chat) {
 
     const sendSummary = (conv) => {
         conv.say(`Quindi, ricapitolando:\n - Progetto: ${conv.get('projectName')}\n - Durata: ${conv.get('duration')}\n - Attività: ${conv.get('note')}`);
-        const question = {
-            text: `Giusto?`,
-            quickReplies: ['Yes', 'No']
-        };
-
-        const answer = (payload, conv) => {
-            const text = payload.message.text;
-            conv.say(`You said ${text}!`);
-        };
-
-        const callbacks = [
-            {
-                pattern: ['yes', 'y', 'Yes', 'Y'],
-                callback: (payload, conv) => { registerActivity(conv) }
-            },
-            {
-                pattern: ['no', 'No', 'n', 'N'],
-                callback: (payload, conv) => { askProject(conv) }
-            }
-        ];
-
-        const options = {
-            typing: true
-        };
-
-        conv.ask(question, answer, callbacks, options);
+        _yesNoQuestion(conv, 'Giusto?', registerActivity, askProject, { typing: true });
     };
 
     const registerActivity = (conv) => {
@@ -313,6 +365,30 @@ function registerActivity(payload, chat) {
     });
 }
 
+function _yesNoQuestion(conv, message, onYes, onNo, options) {
+    const question = {
+        text: message,
+        quickReplies: ['Sì', 'No']
+    };
+
+    const answer = (payload, conv) => {
+        const text = payload.message.text;
+        conv.say(`You said ${text}!`);
+    };
+
+    const callbacks = [
+        {
+            pattern: ['s', 'S', 'Sì', 'sì', 'si', 'Si', 'SI'],
+            callback: (payload, conv) => { onYes(conv) }
+        },
+        {
+            pattern: ['n', 'N', 'no', 'No', 'NO'],
+            callback: (payload, conv) => { onNo(conv) }
+        }
+    ];
+    conv.ask(question, answer, callbacks, options);
+}
+
 function newProject(payload, chat) {
     chat.conversation((conv) => {
         askProjectName(conv).then((project) => {
@@ -321,4 +397,3 @@ function newProject(payload, chat) {
         });
     });
 }
-
